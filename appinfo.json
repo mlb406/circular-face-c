@@ -1,0 +1,29 @@
+{
+    "appKeys": {},
+    "capabilities": [
+        ""
+    ],
+    "companyName": "mlb406@gmail.com",
+    "longName": "circular-plus-c",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/pebble_circular.png",
+                "name": "IMAGE_BACKGROUND",
+                "type": "png"
+            }
+        ]
+    },
+    "sdkVersion": "3",
+    "shortName": "circular-plus-c",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
+    "uuid": "79b74544-e1b7-44f1-b2ba-ebb7b0131825",
+    "versionLabel": "1.0",
+    "watchapp": {
+        "watchface": true
+    }
+}

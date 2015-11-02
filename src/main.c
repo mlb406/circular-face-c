@@ -71,7 +71,7 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
   #endif
 
   #ifdef PBL_SDK_3
-    uint8_t i = 3;
+    uint8_t i = 2;
     graphics_context_set_stroke_width(ctx, i);
   #endif
 

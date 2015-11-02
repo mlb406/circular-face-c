@@ -2,10 +2,9 @@
 #include "math.h"
 
 static Window *window;
-/*static BitmapLayer *background_layer;
-static GBitmap *background_bitmap;*/
 static TextLayer *time_layer;
 static Layer *circle_layer, *top_analogue, *bottom_analogue, *top_hand, *bottom_hand;
+static int battery_level;
 
 static GPath *top_path;
 static GPathInfo TOP_PATH_INFO = {
@@ -19,10 +18,29 @@ static GPathInfo BOTTOM_PATH_INFO = {
   .points = (GPoint[]) { {-1, 156}, {144, 156}, {144, 168}, {-1, 168} }
 };
 
+static void battery_callback(BatteryChargeState charge_state) {
+  battery_level = charge_state.charge_percent;
+  
+  if (charge_state.is_charging == true) {
+    #ifdef PBL_COLOR
+      window_set_background_color(window, GColorFromRGB(0, 255, 0));
+    #endif
+  } else if (battery_level < 20) {
+    #ifdef PBL_COLOR
+      window_set_background_color(window, GColorFromRGB(255, 255, 0));
+    #endif
+  } else {
+    #ifdef PBL_COLOR
+      window_set_background_color(window, GColorFromRGB(255, 0, 0));
+    #endif
+  }
+}
+
 static void layer_update_proc(Layer *layer, GContext *ctx) {
   GRect bounds = layer_get_bounds(layer);
   GPoint center = grect_center_point(&bounds);
   #ifdef PBL_COLOR
+    graphics_context_set_antialiased(ctx, true);
     graphics_context_set_fill_color(ctx, GColorFromRGB(0, 0, 255));
   #else
     graphics_context_set_fill_color(ctx, GColorWhite);
@@ -35,7 +53,7 @@ static void layer_update_proc(Layer *layer, GContext *ctx) {
 }
 
 static void hands_update_proc(Layer *layer, GContext *ctx) {
-  GRect bounds = layer_get_bounds(layer);
+  //GRect bounds = layer_get_bounds(layer);
   
   time_t now = time(NULL);
   struct tm *t = localtime(&now);
@@ -51,10 +69,12 @@ static void hands_update_proc(Layer *layer, GContext *ctx) {
   #else
     graphics_context_set_stroke_color(ctx, GColorBlack);
   #endif
-  
-  //uint8_t i = 3;
-  //graphics_context_set_stroke_width(ctx, i);
-  
+
+  #ifdef PBL_SDK_3
+    uint8_t i = 3;
+    graphics_context_set_stroke_width(ctx, i);
+  #endif
+
   GPoint min_p0 = GPoint(min_pos, 0);
   GPoint min_p1 = GPoint(min_pos, 12);
   
@@ -84,6 +104,7 @@ static void update_time() {
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
+  layer_mark_dirty(window_get_root_layer(window));
 }
 
 static void main_window_load() {
@@ -156,6 +177,8 @@ static void init(void) {
     window_set_background_color(window, GColorBlack);
   #endif
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
+  
+  battery_state_service_subscribe(battery_callback);
   
   window_set_window_handlers(window, (WindowHandlers) {
     .load = main_window_load,

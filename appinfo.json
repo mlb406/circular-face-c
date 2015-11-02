@@ -7,13 +7,7 @@
     "longName": "circular-plus-c",
     "projectType": "native",
     "resources": {
-        "media": [
-            {
-                "file": "images/pebble_circular.png",
-                "name": "IMAGE_BACKGROUND",
-                "type": "png"
-            }
-        ]
+        "media": []
     },
     "sdkVersion": "3",
     "shortName": "circular-plus-c",

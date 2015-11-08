@@ -46,7 +46,8 @@ static void layer_update_proc(Layer *layer, GContext *ctx) {
     graphics_context_set_fill_color(ctx, GColorWhite);
   #endif
 
-  graphics_fill_circle(ctx, GPoint(72, 84), 64);
+
+  graphics_fill_circle(ctx, center, 64);
   
   gpath_draw_filled(ctx, top_path);
   gpath_draw_filled(ctx, bottom_path);

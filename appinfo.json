@@ -1,7 +1,11 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_BARS": 0,
+        "KEY_DATE": 1,
+        "KEY_FORMAT": 2
+    },
     "capabilities": [
-        ""
+        "configurable"
     ],
     "companyName": "mlb406@gmail.com",
     "longName": "circular-plus-c",

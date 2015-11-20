@@ -1,10 +1,15 @@
 #include <pebble.h>
 #include "math.h"
 
-static Window *window;
-static TextLayer *time_layer;
-static Layer *circle_layer, *top_analogue, *bottom_analogue, *top_hand, *bottom_hand;
+#define KEY_BARS 0
+#define KEY_DATE 1
+#define KEY_FORMAT 2
+
+static Window *window, *date_window;
+static TextLayer *time_layer, *date_layer;
+static Layer *circle_layer, *top_analogue, *bottom_analogue, *top_hand;
 static int battery_level;
+static void accel_tap_handler(AccelAxisType axis, int32_t direction);
 
 static GPath *top_path;
 static GPathInfo TOP_PATH_INFO = {
@@ -17,6 +22,47 @@ static GPathInfo BOTTOM_PATH_INFO = {
   .num_points = 4,
   .points = (GPoint[]) { {-1, 156}, {144, 156}, {144, 168}, {-1, 168} }
 };
+
+static void date_window_init() {
+  accel_tap_service_unsubscribe();
+  date_window = window_create();
+  #ifdef PBL_SDK_2 
+    window_set_fullscreen(date_window, true);
+  #endif
+  window_set_background_color(date_window, GColorBlack);
+  window_stack_push(date_window, true);
+  
+  time_t temp = time(NULL);
+  struct tm *t = localtime(&temp);
+  
+  char buffer[32];
+  strftime(buffer, sizeof(buffer), "%d/%m/%y", t);
+  
+  date_layer = text_layer_create(GRect(0, 50, 144, 168));
+  text_layer_set_font(date_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+  text_layer_set_text_color(date_layer, GColorWhite);
+  text_layer_set_background_color(date_layer, GColorClear);
+  text_layer_set_text_alignment(date_layer, GTextAlignmentCenter);
+  text_layer_set_text(date_layer, buffer);
+  
+  layer_add_child(window_get_root_layer(date_window), text_layer_get_layer(date_layer));
+}
+
+static void date_window_deinit() {
+  text_layer_destroy(date_layer);
+  window_stack_remove(date_window, true);
+  window_destroy(date_window);
+  accel_tap_service_subscribe(accel_tap_handler);
+}
+
+static void app_timer_callback() {
+  date_window_deinit();
+}
+
+static void accel_tap_handler(AccelAxisType axis, int32_t direction) {
+  date_window_init();
+  app_timer_register(2000, app_timer_callback, NULL);
+}
 
 static void battery_callback(BatteryChargeState charge_state) {
   battery_level = charge_state.charge_percent;
@@ -169,6 +215,40 @@ static void main_window_unload() {
   
 }
 
+static void inbox_received_callback(DictionaryIterator *iter, void *context) {
+  Tuple *t = dict_read_first(iter);
+  
+  //char metar_buffer[128];
+  
+  while (t != NULL) {
+    switch (t->key) {
+      case KEY_METAR:
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Got KEY_METAR");
+        //snprintf(metar_buffer, sizeof(metar_buffer), t->value->cstring, t->value->cstring);
+        text_layer_set_text(metar_layer, t->value->cstring);
+        persist_write_string(KEY_METAR, t->value->cstring);
+        vibes_double_pulse();
+        break;
+      default:
+        APP_LOG(APP_LOG_LEVEL_DEBUG, "Key not found :(");
+    }
+    
+    t = dict_read_next(iter);
+  }
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+}
+
 static void init(void) {
   window = window_create();
   
@@ -180,6 +260,7 @@ static void init(void) {
   tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
   
   battery_state_service_subscribe(battery_callback);
+  accel_tap_service_subscribe(accel_tap_handler);
   
   window_set_window_handlers(window, (WindowHandlers) {
     .load = main_window_load,
